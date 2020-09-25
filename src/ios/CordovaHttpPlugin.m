@@ -123,14 +123,21 @@
 }
 
 - (void)handleError:(NSMutableDictionary*)dictionary withResponse:(NSHTTPURLResponse*)response error:(NSError*)error {
+    bool aborted = error.code == NSURLErrorCancelled;
+    if(aborted){
+        [dictionary setObject:[NSNumber numberWithInt:-8] forKey:@"status"];
+        [dictionary setObject:@"Request was aborted" forKey:@"error"];
+    }
     if (response != nil) {
         [dictionary setValue:response.URL.absoluteString forKey:@"url"];
-        [dictionary setObject:[NSNumber numberWithInt:(int)response.statusCode] forKey:@"status"];
         [dictionary setObject:[self copyHeaderFields:response.allHeaderFields] forKey:@"headers"];
-        if (error.userInfo[AFNetworkingOperationFailingURLResponseBodyErrorKey]) {
-            [dictionary setObject:error.userInfo[AFNetworkingOperationFailingURLResponseBodyErrorKey] forKey:@"error"];
+        if(!aborted){
+            [dictionary setObject:[NSNumber numberWithInt:(int)response.statusCode] forKey:@"status"];
+            if (error.userInfo[AFNetworkingOperationFailingURLResponseBodyErrorKey]) {
+                [dictionary setObject:error.userInfo[AFNetworkingOperationFailingURLResponseBodyErrorKey] forKey:@"error"];
+            }
         }
-    } else {
+    } else if(!aborted) {
         [dictionary setObject:[self getStatusCode:error] forKey:@"status"];
         [dictionary setObject:[error localizedDescription] forKey:@"error"];
     }
